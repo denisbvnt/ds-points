@@ -14,7 +14,7 @@ WITH tb_rfv AS (
 
     FROM transactions
 
-    WHERE dtTransaction < '{date}'
+    WHERE dtTransaction < DATE('{date}')
     AND dtTransaction >= DATE('{date}', '-21 day')
 
     GROUP BY idCustomer
