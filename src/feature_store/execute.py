@@ -1,21 +1,56 @@
 #%%
+import argparse
 import sqlalchemy
 import pandas as pd
+import datetime
+import sqlalchemy.exc
+from tqdm import tqdm
 
 def import_query(path):
-    with open('fs_general.sql', 'r') as open_file:
+    with open(path, 'r') as open_file:
         return open_file.read()
-# %%
-origin_engine = sqlalchemy.create_engine('sqlite:///../../data/datanase.db')
-target_engine = sqlalchemy.create_engine('sqlite:///../../data/feature_store.db')
-# %%
+    
+def ingest_date(query, table, date):
+    # Substituição de '{date}' por uma data
+    query_fmt = query.format(date=date)
 
-# Import da query
-query = import_query('fs_general.sql')
+    # Executa e traz o resultado para o Python
+    df = pd.read_sql(sql=query_fmt, con=ORIGIN_ENGINE)
 
-# Substituição de '{date}' por uma data
-query_fmt = query.format(date='2024-06-06')
+    # Deleta os dados com a data de referência para garantir a integridade
+    with TARGET_ENGINE.connect() as con:
+        try:
+            state = f"DELETE FROM {table} WHERE dtRef = '{date}'"
+            con.execute(sqlalchemy.text(state))
+            con.commit()
+        except sqlalchemy.exc.OperationalError as err:
+            print('Tabela ainda não existe, criando agora...')
+
+    # Enviando os dados para o novo database
+    df.to_sql(table, TARGET_ENGINE, index=False, if_exists='append')
 # %%
-df = pd.read_sql(sql=query_fmt, con=origin_engine)
-df.head()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--feature_store", "-f", help='Nome da Feature Store', type=str)
+    parser.add_argument("--start", "-s", help='Data de Início')
+    parser.add_argument("--end", "-e", help='Data de Fim')
+    args = parser.parse_args()
+
+    # Import da query
+    query = import_query(f'{args.feature_store}.sql')
+    start = args.start
+    end = args.end
+    dates = [date.strftime('%Y-%m-%d')
+            for date in pd.date_range(
+                start=datetime.datetime.strptime(start, '%Y-%m-%d'),
+                end=datetime.datetime.strptime(end, '%Y-%m-%d'), freq='1D')
+            ]
+
+    for i in tqdm(dates):
+        ingest_date(query, args.feature_store, i)
+#%%
+if __name__ == '__main__':
+    ORIGIN_ENGINE = sqlalchemy.create_engine('sqlite:///../../data/database.db')
+    TARGET_ENGINE = sqlalchemy.create_engine('sqlite:///../../data/feature_store.db')
+    main()
 # %%
