@@ -85,7 +85,8 @@ tb_vida AS (
 ),
 
 tb_join AS (
-    SELECT t1.*,
+    SELECT  '{date}' AS dtRef,
+            t1.*,
             t2.saldoPontosVida,
             t2.pontosAcumuladosVida,
             t2.pontosResgatadosVida,

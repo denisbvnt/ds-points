@@ -1,4 +1,5 @@
 #%%
+import os
 import argparse
 import sqlalchemy
 import pandas as pd
@@ -33,26 +34,35 @@ def main():
     today = datetime.date.today().strftime('%Y-%m-%d')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--feature_store", "-f", help='Nome da Feature Store', type=str)
+    parser.add_argument("--feature_store", "-f", help='Nome da Feature Store', default='all', type=str)
     parser.add_argument("--start", "-s", help='Data de Início', default=today)
     parser.add_argument("--end", "-e", help='Data de Fim', default=today)
     args = parser.parse_args()
 
     # Import da query
-    query = import_query(f'{args.feature_store}.sql')
-    start = args.start
-    end = args.end
-    dates = [date.strftime('%Y-%m-%d')
-            for date in pd.date_range(
-                start=datetime.datetime.strptime(start, '%Y-%m-%d'),
-                end=datetime.datetime.strptime(end, '%Y-%m-%d'), freq='1D')
-            ]
 
-    for i in tqdm(dates):
-        ingest_date(query, args.feature_store, i)
+    if args.feature_store == 'all':
+        feature_store_list = [file.replace('.sql', '') for file in os.listdir() if '.sql' in file]
+    else:
+        feature_store_list = [args.feature_store]
+
+    for feature_store in feature_store_list:
+        print(f'Ingest {feature_store}.')
+        query = import_query(f'{feature_store}.sql')
+        start = args.start
+        end = args.end
+        dates = [date.strftime('%Y-%m-%d')
+                for date in pd.date_range(
+                    start=datetime.datetime.strptime(start, '%Y-%m-%d'),
+                    end=datetime.datetime.strptime(end, '%Y-%m-%d'), freq='1D')
+                ]
+
+        for i in tqdm(dates):
+            ingest_date(query, feature_store, i)
 #%%
 if __name__ == '__main__':
     ORIGIN_ENGINE = sqlalchemy.create_engine('sqlite:///../../data/database.db')
     TARGET_ENGINE = sqlalchemy.create_engine('sqlite:///../../data/feature_store.db')
     main()
 # %%
+
