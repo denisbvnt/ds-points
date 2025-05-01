@@ -30,10 +30,12 @@ def ingest_date(query, table, date):
     df.to_sql(table, TARGET_ENGINE, index=False, if_exists='append')
 # %%
 def main():
+    today = datetime.date.today().strftime('%Y-%m-%d')
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--feature_store", "-f", help='Nome da Feature Store', type=str)
-    parser.add_argument("--start", "-s", help='Data de Início')
-    parser.add_argument("--end", "-e", help='Data de Fim')
+    parser.add_argument("--start", "-s", help='Data de Início', default=today)
+    parser.add_argument("--end", "-e", help='Data de Fim', default=today)
     args = parser.parse_args()
 
     # Import da query
