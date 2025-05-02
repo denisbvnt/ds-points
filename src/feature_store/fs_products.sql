@@ -1,52 +1,59 @@
 WITH tb_transaction_products AS (
-    SELECT t1.*,
-           t2.NameProduct,
-           t2.QuantityProduct
+    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,
+            t1.*,
+            t2.NameProduct,
+            t2.QuantityProduct
             
     FROM transactions AS t1
     LEFT JOIN transactions_product AS t2
     ON t1.idTransaction = t2.idTransaction
 
-    WHERE t1.dtTransaction < DATE('{date}')
-    AND t1.dtTransaction >= DATE('{date}', '-21 day')
+    WHERE 
+    CASE 
+        WHEN (SELECT COUNT(*) FROM transactions
+            WHERE dtTransaction < DATE('{date}') AND dtTransaction >= DATE('{date}', '-21 day')) = 0
+            THEN dtTransaction < (SELECT MAX(dtTransaction) FROM transactions)
+            AND dtTransaction >= DATE((SELECT MAX(dtTransaction) FROM transactions), '-21 day')
+        ELSE
+            dtTransaction < DATE('{date}')
+            AND dtTransaction >= DATE('{date}', '-21 day')
+    END
 ),
 
 tb_share AS (
-SELECT idCustomer,
-        SUM(CASE WHEN NameProduct = 'Resgatar Ponei' THEN QuantityProduct ELSE 0 END) AS qtdResgatarPonei,
-        SUM(CASE WHEN NameProduct = 'ChatMessage' THEN QuantityProduct ELSE 0 END) AS qtdChatMessage,
-        SUM(CASE WHEN NameProduct = 'Lista de presença' THEN QuantityProduct ELSE 0 END) AS qtdListaPresença,
-        SUM(CASE WHEN NameProduct = 'Airflow Lover' THEN QuantityProduct ELSE 0 END) AS qtdAirflowLover,
-        SUM(CASE WHEN NameProduct = 'R Lover' THEN QuantityProduct ELSE 0 END) AS qtdRLover,
-        SUM(CASE WHEN NameProduct = 'Presença Streak' THEN QuantityProduct ELSE 0 END) AS qtdPresençaStreak,
-        SUM(CASE WHEN NameProduct = 'Troca de Pontos StreamElements' THEN QuantityProduct ELSE 0 END) AS qtdTrocaPontosStreamElements,
-        SUM(CASE WHEN NameProduct = 'Churn_5pp' THEN QuantityProduct ELSE 0 END) AS qtdChurn_5pp,
-        SUM(CASE WHEN NameProduct = 'Churn_2pp' THEN QuantityProduct ELSE 0 END) AS qtdChurn_2pp,
-        SUM(CASE WHEN NameProduct = 'Churn_10pp' THEN QuantityProduct ELSE 0 END) AS qtdChurn_10pp,
-        
-        SUM(CASE WHEN NameProduct = 'Resgatar Ponei' THEN pointsTransaction ELSE 0 END) AS ptsResgatarPonei,
-        SUM(CASE WHEN NameProduct = 'ChatMessage' THEN pointsTransaction ELSE 0 END) AS ptsChatMessage,
-        SUM(CASE WHEN NameProduct = 'Lista de presença' THEN pointsTransaction ELSE 0 END) AS ptsListaPresença,
-        SUM(CASE WHEN NameProduct = 'Airflow Lover' THEN pointsTransaction ELSE 0 END) AS ptsAirflowLover,
-        SUM(CASE WHEN NameProduct = 'R Lover' THEN pointsTransaction ELSE 0 END) AS ptsRLover,
-        SUM(CASE WHEN NameProduct = 'Presença Streak' THEN pointsTransaction ELSE 0 END) AS ptsPresençaStreak,
-        SUM(CASE WHEN NameProduct = 'Troca de Pontos StreamElements' THEN pointsTransaction ELSE 0 END) AS ptsTrocaPontosStreamElements,
-        SUM(CASE WHEN NameProduct = 'Churn_5pp' THEN pointsTransaction ELSE 0 END) AS ptsChurn_5pp,
-        SUM(CASE WHEN NameProduct = 'Churn_2pp' THEN pointsTransaction ELSE 0 END) AS ptsChurn_2pp,
-        SUM(CASE WHEN NameProduct = 'Churn_10pp' THEN pointsTransaction ELSE 0 END) AS ptsChurn_10pp,
-
-        1.0 * SUM(CASE WHEN NameProduct = 'Resgatar Ponei' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctResgatarPonei,
-        1.0 * SUM(CASE WHEN NameProduct = 'ChatMessage' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctChatMessage,
-        1.0 * SUM(CASE WHEN NameProduct = 'Lista de presença' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctListaPresença,
-        1.0 * SUM(CASE WHEN NameProduct = 'Airflow Lover' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctAirflowLover,
-        1.0 * SUM(CASE WHEN NameProduct = 'R Lover' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctRLover,
-        1.0 * SUM(CASE WHEN NameProduct = 'Presença Streak' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctPresençaStreak,
-        1.0 * SUM(CASE WHEN NameProduct = 'Troca de Pontos StreamElements' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctTrocaPontosStreamElements,
-        1.0 * SUM(CASE WHEN NameProduct = 'Churn_5pp' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctChurn_5pp,
-        1.0 * SUM(CASE WHEN NameProduct = 'Churn_2pp' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctChurn_2pp,
-        1.0 * SUM(CASE WHEN NameProduct = 'Churn_10pp' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS pctChurn_10pp,
-
-        1.0 * SUM(CASE WHEN NameProduct = 'ChatMessage' THEN QuantityProduct ELSE 0 END) / COUNT(DISTINCT DATE(dtTransaction)) AS avgChatLive
+SELECT dtRef,
+        idCustomer,
+        CAST(SUM(CASE WHEN NameProduct = 'Resgatar Ponei' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdResgatarPonei,
+        CAST(SUM(CASE WHEN NameProduct = 'ChatMessage' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdChatMessage,
+        CAST(SUM(CASE WHEN NameProduct = 'Lista de presença' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdListaPresença,
+        CAST(SUM(CASE WHEN NameProduct = 'Airflow Lover' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdAirflowLover,
+        CAST(SUM(CASE WHEN NameProduct = 'R Lover' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdRLover,
+        CAST(SUM(CASE WHEN NameProduct = 'Presença Streak' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdPresençaStreak,
+        CAST(SUM(CASE WHEN NameProduct = 'Troca de Pontos StreamElements' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdTrocaPontosStreamElements,
+        CAST(SUM(CASE WHEN NameProduct = 'Churn_5pp' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdChurn_5pp,
+        CAST(SUM(CASE WHEN NameProduct = 'Churn_2pp' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdChurn_2pp,
+        CAST(SUM(CASE WHEN NameProduct = 'Churn_10pp' THEN QuantityProduct ELSE 0 END) AS NUMERIC) AS qtdChurn_10pp,
+        CAST(SUM(CASE WHEN NameProduct = 'Resgatar Ponei' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsResgatarPonei,
+        CAST(SUM(CASE WHEN NameProduct = 'ChatMessage' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsChatMessage,
+        CAST(SUM(CASE WHEN NameProduct = 'Lista de presença' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsListaPresença,
+        CAST(SUM(CASE WHEN NameProduct = 'Airflow Lover' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsAirflowLover,
+        CAST(SUM(CASE WHEN NameProduct = 'R Lover' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsRLover,
+        CAST(SUM(CASE WHEN NameProduct = 'Presença Streak' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsPresençaStreak,
+        CAST(SUM(CASE WHEN NameProduct = 'Troca de Pontos StreamElements' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsTrocaPontosStreamElements,
+        CAST(SUM(CASE WHEN NameProduct = 'Churn_5pp' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsChurn_5pp,
+        CAST(SUM(CASE WHEN NameProduct = 'Churn_2pp' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsChurn_2pp,
+        CAST(SUM(CASE WHEN NameProduct = 'Churn_10pp' THEN pointsTransaction ELSE 0 END) AS NUMERIC) AS ptsChurn_10pp,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Resgatar Ponei' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctResgatarPonei,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'ChatMessage' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctChatMessage,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Lista de presença' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctListaPresença,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Airflow Lover' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctAirflowLover,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'R Lover' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctRLover,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Presença Streak' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctPresençaStreak,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Troca de Pontos StreamElements' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctTrocaPontosStreamElements,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Churn_5pp' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctChurn_5pp,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Churn_2pp' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctChurn_2pp,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'Churn_10pp' THEN QuantityProduct ELSE 0 END) / SUM(QuantityProduct) AS NUMERIC) AS pctChurn_10pp,
+        CAST(1.0 * SUM(CASE WHEN NameProduct = 'ChatMessage' THEN QuantityProduct ELSE 0 END) / COUNT(DISTINCT DATE(dtTransaction)) AS NUMERIC) AS avgChatLive
 
 
 
@@ -86,8 +93,7 @@ tb_product_min AS (
     WHERE ascRnQtde = 1
 )
 
-SELECT '{date}' AS dtRef,
-       t1.*,
+SELECT t1.*,
        t2.NameProduct AS maisComprado,
        t3.NameProduct AS menosComprado
 

@@ -8,8 +8,9 @@ WITH tb_fl_churn AS (
         ON t1.idCustomer = t2.idCustomer
         AND t1.dtRef = DATE(t2.dtRef, '-21 day')
 
-        WHERE t1.dtRef < DATE('2024-06-06', '-21 day')
-        AND STRFTIME('%d', t1.dtRef) = '01'
+        WHERE (t1.dtRef < DATE((SELECT MAX(dtRef) FROM fs_general), '-21 day')
+        AND STRFTIME('%d', t1.dtRef) = '01')
+        OR t1.dtRef = DATE((SELECT MAX(dtRef) FROM fs_general), '-21 day')
 
         ORDER BY 1, 2
 )

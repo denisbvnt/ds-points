@@ -1,9 +1,9 @@
 WITH tb_rfv AS (
 
-    SELECT 
+    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,
         idCustomer,
 
-        CAST(julianday('{date}') - MAX(julianday(dtTransaction))
+        CAST(julianday((SELECT MAX(dtTransaction) FROM transactions)) - MAX(julianday(dtTransaction))
             AS INTEGER) + 1 AS recenciaDias,
 
         COUNT(DISTINCT DATE(dtTransaction)) AS frequenciaDias,
@@ -14,8 +14,16 @@ WITH tb_rfv AS (
 
     FROM transactions
 
-    WHERE dtTransaction < DATE('{date}')
-    AND dtTransaction >= DATE('{date}', '-21 day')
+    WHERE 
+    CASE 
+        WHEN (SELECT COUNT(*) FROM transactions
+            WHERE dtTransaction < DATE('{date}') AND dtTransaction >= DATE('{date}', '-21 day')) = 0
+            THEN dtTransaction < (SELECT MAX(dtTransaction) FROM transactions)
+            AND dtTransaction >= DATE((SELECT MAX(dtTransaction) FROM transactions), '-21 day')
+        ELSE
+            dtTransaction < DATE('{date}')
+            AND dtTransaction >= DATE('{date}', '-21 day')
+    END
 
     GROUP BY idCustomer
 ),
@@ -26,7 +34,7 @@ tb_idade AS (
 
         t1.idCustomer,
 
-        CAST(julianday('{date}') - MIN(julianday(t2.dtTransaction))
+        CAST(julianday((SELECT MAX(dtTransaction) FROM tb_rfv)) - MIN(julianday(t2.dtTransaction))
                 AS INTEGER) + 1 AS idadeBaseDias
 
     FROM tb_rfv AS t1
@@ -38,9 +46,7 @@ tb_idade AS (
 
 )
 
-SELECT
-    '{date}' AS dtRef,
-     t1.*,
+SELECT t1.*,
      t2.idadeBaseDias,
      t3.flEmail
 
