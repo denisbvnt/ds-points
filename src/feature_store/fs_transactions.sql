@@ -1,14 +1,24 @@
 WITH tb_transactions AS (
-    SELECT *
+    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,
+            *
     FROM transactions
-    WHERE dtTransaction < DATE('{date}')
-        AND dtTransaction >= DATE('{date}', '-21 day')
+    WHERE 
+    CASE 
+        WHEN (SELECT COUNT(*) FROM transactions
+            WHERE dtTransaction < DATE('{date}') AND dtTransaction >= DATE('{date}', '-21 day')) = 0
+            THEN dtTransaction < (SELECT MAX(dtTransaction) FROM transactions)
+            AND dtTransaction >= DATE((SELECT MAX(dtTransaction) FROM transactions), '-21 day')
+        ELSE
+            dtTransaction < DATE('{date}')
+            AND dtTransaction >= DATE('{date}', '-21 day')
+    END
 ),
 
 tb_freq AS (
-    SELECT idCustomer,
-        COUNT(DISTINCT DATE(dtTransaction)) AS qtdeDiasD21,
-        COUNT(
+    SELECT dtRef,
+        idCustomer,
+        CAST(COUNT(DISTINCT DATE(dtTransaction)) AS NUMERIC) AS qtdeDiasD21,
+        CAST(COUNT(
             DISTINCT CASE
                 WHEN dtTransaction < DATE(
                     (
@@ -24,8 +34,8 @@ tb_freq AS (
                     '-14 day'
                 ) THEN DATE(dtTransaction)
             END
-        ) AS qtdeDiasD14,
-        COUNT(
+        ) AS NUMERIC) AS qtdeDiasD14,
+        CAST(COUNT(
             DISTINCT CASE
                 WHEN dtTransaction < DATE(
                     (
@@ -41,7 +51,7 @@ tb_freq AS (
                     '-7 day'
                 ) THEN DATE(dtTransaction)
             END
-        ) AS qtdeDiasD7
+        ) AS NUMERIC) AS qtdeDiasD7
     FROM tb_transactions
     GROUP BY idCustomer
 ),
@@ -61,10 +71,10 @@ tb_minutos_dia AS (
 
 tb_hours AS (
     SELECT idCustomer,
-            AVG(minutosDia) AS mediaMinutos,
-            SUM(minutosDia) AS somaMinutos,
-            MIN(minutosDia) AS minMinutos,
-            MAX(minutosDia) AS maxMinutos
+            CAST(AVG(minutosDia) AS NUMERIC) AS mediaMinutos,
+            CAST(SUM(minutosDia) AS NUMERIC) AS somaMinutos,
+            CAST(MIN(minutosDia) AS NUMERIC) AS minMinutos,
+            CAST(MAX(minutosDia) AS NUMERIC) AS maxMinutos
 
     FROM tb_minutos_dia
 
@@ -73,13 +83,13 @@ tb_hours AS (
 
 tb_vida AS (
     SELECT idCustomer,
-        COUNT(DISTINCT idTransaction) AS qtdeTransacoesVida,
-        1.0 * COUNT(DISTINCT idTransaction) / (MAX(JULIANDAY('{date}')) -
-        MIN(JULIANDAY(dtTransaction))) AS mediaTransacaoDia
+        CAST(COUNT(DISTINCT idTransaction) AS NUMERIC) AS qtdeTransacoesVida,
+        CAST(1.0 * COUNT(DISTINCT idTransaction) / (MAX(JULIANDAY(DATE((SELECT MAX(dtTransaction) FROM transactions)))) -
+        MIN(JULIANDAY(dtTransaction)))  AS NUMERIC) AS mediaTransacaoDia
     
     FROM transactions
     
-    WHERE dtTransaction < DATE('{date}')
+    WHERE dtTransaction < DATE((SELECT MAX(dtRef) FROM tb_transactions))
 
     GROUP BY idCustomer
 ),
@@ -101,6 +111,5 @@ tb_join AS (
     ON t2.idCustomer = t3.idCustomer
 )
 
-SELECT '{date}' AS dtRef,
-        *
+SELECT *
 FROM tb_join
