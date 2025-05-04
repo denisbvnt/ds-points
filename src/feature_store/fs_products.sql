@@ -1,5 +1,5 @@
 WITH tb_transaction_products AS (
-    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,
+    SELECT '{date}' AS dtRef,
             t1.*,
             t2.NameProduct,
             t2.QuantityProduct

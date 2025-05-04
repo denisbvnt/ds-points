@@ -25,7 +25,7 @@ def ingest_date(query, table, date):
             con.execute(sqlalchemy.text(state))
             con.commit()
         except sqlalchemy.exc.OperationalError as err:
-            print('Tabela ainda não existe, criando agora...')
+            print(f'Tabela {table} ainda não existe, criando agora...')
 
     # Enviando os dados para o novo database
     df.to_sql(table, TARGET_ENGINE, index=False, if_exists='append')

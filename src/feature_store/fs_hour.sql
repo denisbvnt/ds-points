@@ -1,5 +1,5 @@
 WITH tb_transactions_hour AS (    
-    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,               
+    SELECT '{date}' AS dtRef,               
         idCustomer,
         pointsTransaction,
         CAST(STRFTIME('%H', DATETIME(dtTransaction, '-3 hour')) AS INTEGER) AS hour
