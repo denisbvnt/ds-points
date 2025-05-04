@@ -1,5 +1,5 @@
 WITH tb_pontos_d AS (    
-    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,
+    SELECT '{date}' AS dtRef,
         idCustomer,
 
         CAST(SUM(pointsTransaction) AS NUMERIC) AS saldoPontosD21,
@@ -88,7 +88,7 @@ tb_vida AS (
     LEFT JOIN transactions AS t2
     ON t1.idCustomer = t2.idCustomer
 
-    WHERE t2.dtTransaction < DATE((SELECT MAX(dtRef) FROM tb_pontos_d))
+    WHERE t2.dtTransaction < '{date}'
 
     GROUP BY t2.idCustomer
 ),

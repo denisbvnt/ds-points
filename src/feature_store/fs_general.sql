@@ -1,6 +1,5 @@
 WITH tb_rfv AS (
-
-    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,
+    SELECT '{date}' AS dtRef,
         idCustomer,
 
         CAST(julianday((SELECT MAX(dtTransaction) FROM transactions)) - MAX(julianday(dtTransaction))

@@ -1,5 +1,5 @@
 WITH tb_transactions AS (
-    SELECT DATE((SELECT MAX(dtTransaction) FROM transactions)) AS dtRef,
+    SELECT '{date}' AS dtRef,
             *
     FROM transactions
     WHERE 
@@ -89,7 +89,7 @@ tb_vida AS (
     
     FROM transactions
     
-    WHERE dtTransaction < DATE((SELECT MAX(dtRef) FROM tb_transactions))
+    WHERE dtTransaction < '{date}'
 
     GROUP BY idCustomer
 ),
